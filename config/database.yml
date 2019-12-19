@@ -14,16 +14,29 @@
 # Configure Using Gemfile
 # gem 'pg'
 #
+
 default: &default
   adapter: postgresql
   encoding: unicode
-  # For details on connection pooling, see Rails configuration guide
-  # https://guides.rubyonrails.org/configuring.html#database-pooling
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+  pool: <%= (ENV['MAX_THREADS'] || 5).to_i * 2 %>
+  host: localhost
+  port: 5432
+  username: yourappname
+  password: yourappname
+
+default: &docker
+  <<: *default
+  pool: <%= (ENV['MAX_THREADS'] || 5).to_i * 2 %>
+  host: <%= ENV['REL_DATABASE_HOST'] %>
+  port: <%= ENV['REL_DATABASE_PORT'] %>
+  username: <%= ENV['REL_DATABASE_USERNAME'] %>
+  password: <%= ENV['REL_DATABASE_PASSWORD'] %>
+  database: <%= ENV['REL_DATABASE_DB'] %>
 
 development:
-  <<: *default
-  database: yourappname_development
+  <<: *docker
+  database: yourappname_db_development
 
   # The specified database role being used to connect to postgres.
   # To create additional roles in postgres see `$ createuser --help`.
@@ -56,8 +69,8 @@ development:
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  <<: *default
-  database: yourappname_test
+  <<: *docker
+  database: yourappname_db_test
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -79,7 +92,4 @@ test:
 #     url: <%= ENV['DATABASE_URL'] %>
 #
 production:
-  <<: *default
-  database: yourappname_production
-  username: yourappname
-  password: <%= ENV['YOURAPPNAME_DATABASE_PASSWORD'] %>
+  <<: *docker

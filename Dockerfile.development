@@ -1,0 +1,28 @@
+FROM ruby:2.6.5
+
+ENV BUNDLE_JOBS 2
+# /bundle is referenced in docker-compose config
+ENV BUNDLE_PATH /bundle
+
+RUN gem install bundler
+
+# Node.js
+RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
+    && apt-get install -y nodejs
+
+# yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -\
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+    && apt-get update \
+    && apt-get install -y yarn
+
+# Preinstall gems. This will ensure that Gem Cache wont drop on code change
+WORKDIR /tmp
+ADD ./Gemfile Gemfile
+ADD ./Gemfile.lock Gemfile.lock
+
+# /yourappname_rails is referenced in docker-compose config
+ENV APP_HOME /yourappname_rails
+RUN mkdir $APP_HOME
+
+WORKDIR $APP_HOME

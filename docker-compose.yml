@@ -1,0 +1,94 @@
+version: '2'
+
+services:
+  db_dev:
+    image: postgres:9.6.8
+    volumes:
+      - ./vendor/docker-postgresql-multiple-databases:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_PASSWORD: mysecretlocalpassword
+      POSTGRES_USER: postgres
+      POSTGRES_MULTIPLE_DATABASES: yourappname_db_development,yourappname_db_test
+
+  sharedbox:
+    image: busybox
+    volumes:
+      - /var/www
+      - /var/run
+
+  bundle_cache:
+    image: busybox
+    volumes:
+      - /bundle
+
+  redis:
+    image: redis
+
+  proxy:
+    image: yourappname_nginx_development
+    build:
+      context: ./vendor/nginx-dev
+      dockerfile: Dockerfile # relative directory
+    volumes:
+      - ./public:/var/www
+      - ./log:/var/log/nginx
+    volumes_from:
+      - sharedbox
+    ports:
+      - "8080:80"
+    depends_on:
+      - yourappname_web
+
+  yourappname_web:
+    image: yourappname_app_development
+    volumes_from:
+      - sharedbox
+      - bundle_cache
+    build:
+      context: ./
+      dockerfile: Dockerfile.development
+    command: bash /yourappname_rails/lib/scripts/start_web_dev.sh
+    depends_on:
+      - db_dev
+    environment: &app_server_enviroment_vars
+      SITE_DOMAIN_NAME: 'local.yourappname'
+      RAILS_ENV: development
+      MAX_THREADS: 2
+      WEB_CONCURRENCY: 2
+      
+      REL_DATABASE_PASSWORD: mysecretlocalpassword
+      REL_DATABASE_USERNAME: postgres
+      # REL_DATABASE_DB: yourappname_db_development // only set on production env
+      REL_DATABASE_HOST: db_dev
+      REL_DATABASE_PORT: 5432
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB_ID: 0
+
+    volumes:
+      - ./:/yourappname_rails
+      - ./log:/yourappname_rails/log
+    links:
+      - db_dev
+
+  yourappname_worker:
+    image: yourappname_app_development
+    volumes_from:
+      - sharedbox
+      - bundle_cache
+    build:
+      context: ./
+      dockerfile: Dockerfile.development
+    command: bash /yourappname_rails/lib/scripts/start_worker_dev.sh
+    depends_on:
+      - yourappname_web
+    environment:
+      <<: *app_server_enviroment_vars
+      MAX_THREADS: 5  # Sidekiq threads,  watch out so you don't run out of DB connection pool
+    volumes:
+      - ./:/yourappname_rails
+      - ./log:/yourappname_rails/log
+    links:
+      - db_dev
+      - redis
