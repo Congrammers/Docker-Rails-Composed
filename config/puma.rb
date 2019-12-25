@@ -8,13 +8,16 @@ max_threads_count = ENV.fetch("RAILS_MAX_THREADS") { 5 }
 min_threads_count = ENV.fetch("RAILS_MIN_THREADS") { max_threads_count }
 threads min_threads_count, max_threads_count
 
-bind "unix:///var/run/yourappname-puma-app.sock?umask=0000"
+if ENV['PROCESS_PATH']
+  bind ENV.fetch('PROCESS_PATH')
+else
+  # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
+  port        ENV.fetch("PORT") { 3000 }
+end
 
-stdout_redirect "/var/log/yourappname-puma.stdout.log", "/var/log/yourappname-puma.stderr.log", true
-
-# Specifies the `port` that Puma will listen on to receive requests; default is 3000.
-#
-# port        ENV.fetch("PORT") { 3000 }
+stdout_redirect ENV.fetch('PROCESS_ACCESS_LOG') { 'log/yourappname-puma.stdout.log' },
+                ENV.fetch('PROCESS_ERROR_LOG') { 'log/yourappname-puma.stderr.log' },
+                true
 
 # Specifies the `environment` that Puma will run in.
 #

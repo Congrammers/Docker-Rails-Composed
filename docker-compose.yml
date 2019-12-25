@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile # relative directory
     volumes:
       - ./public:/var/www
-      - ./log:/var/log/nginx
+      - ./log:/var/log
     volumes_from:
       - sharedbox
     ports:
@@ -66,9 +66,13 @@ services:
       REDIS_PORT: 6379
       REDIS_DB_ID: 0
 
+      PROCESS_PATH: unix:///var/run/yourappname-puma-app.sock?umask=0000
+      PROCESS_ACCESS_LOG: /var/log/yourappname-puma.stdout.log
+      PROCESS_ERROR_LOG: /var/log/yourappname-puma.stderr.log
+      RUN_PATH: /var/run/
+
     volumes:
       - ./:/yourappname_rails
-      - ./log:/yourappname_rails/log
     links:
       - db_dev
 
@@ -88,7 +92,6 @@ services:
       MAX_THREADS: 5  # Sidekiq threads,  watch out so you don't run out of DB connection pool
     volumes:
       - ./:/yourappname_rails
-      - ./log:/yourappname_rails/log
     links:
       - db_dev
       - redis

@@ -5,4 +5,4 @@
   - ["default", 10]
   - ["mailers", 10]
 
-:pidfile: /var/run/<%= ENV['RAILS_ENV'] %>_sidekiq.pid
+:pidfile: <%= ENV.fetch('RUN_PATH') { 'tmp/pids/' }%><%= ENV['RAILS_ENV'] %>_sidekiq.pid
